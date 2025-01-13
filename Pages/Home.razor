@@ -1,18 +1,17 @@
 @page "/"
 @using System.Net.Http.Json
 @inject HttpClient Http
+@inject IJSRuntime JS
 
 <PageTitle>Time2Pray</PageTitle>
 
-@inject IJSRuntime JS
-
+<!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top" id="app">
-    <div class="container-fluid" style="position: relative;">
+    <div class="container-fluid">
         <!-- Brand -->
         <a class="navbar-brand h4 mb-0" href="#">
             <h3 class="brand-title">Time2Pray</h3>
         </a>
-        <!-- Space Filler -->
         <div class="flex-grow-1"></div>
         <!-- Location Button -->
         <div style="padding-right: 15px;">
@@ -27,46 +26,44 @@
     </div>
 </nav>
 
-<div class="container-fluid bg-darkorange text-white"
-     style="min-height: 100vh; padding-top: 100px; background-color: rgb(150, 55, 0);" id="app">
+<!-- Main Body -->
+<div class="container-fluid bg-darkorange text-white" style="min-height: 100vh; padding-top: 100px;" id="app">
     <div class="row justify-content-center align-items-center" style="height: calc(100vh - 200px);">
         <div class="col-lg-4 col-md-12 d-flex justify-content-center"></div>
-
         <div class="col-lg-4 col-md-12 mb-4 mb-lg-0 text-center">
             <h1 class="display-4 fw-bold text-shadow" style="color: #fff;">Welcome to Time2Pray</h1>
             <h5 class="mt-3 mb-4 text-shadow" style="color: #fff; font-size: 1.2rem;">
                 Find out the precise prayer times for your location
             </h5>
-            <!-- Use JSInterop to call the scroll function -->
             <button @onclick="ScrollToElement" class="btn btn-lg btn-light shadow-lg rounded-pill align-items-center justify-content-center gap-2">
                 <i class="bi bi-arrow-down"></i> Get Prayer Times
             </button>
         </div>
-
         <div class="col-lg-4 col-md-12 d-flex justify-content-center"></div>
     </div>
 </div>
 
+<!-- Prayer Times Section -->
 @if (CurrentCity is null)
 {
-    <h3 id="target" class="text-center mt-5">Praying times in Moscow</h3>
+    <h3 id="target" class="text-center mt-5">Press Find My Location</h3>
 }
 else
 {
-    <h3 id="target" class="text-center mt-5">Praying times in @CurrentCity</h3>
+    <h3 id="target" class="text-center mt-5">Prayer times in @CurrentCity</h3>
 }
 
 @if (timings != null)
 {
     <div class="container mt-5">
         <div class="row justify-content-center">
-            @foreach (var timing in GetPrayerTimes())
+            @foreach (var (title, time) in prayerTimes)
             {
                 <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
                     <div class="card p-4" style="background-color: #f8f9fa;">
-                        <h4 class="card-title text-center text-dark">@timing.Name</h4>
-                        <p class="text-center display-5 text-primary">@timing.Time</p>
-                        <h4 class="text-center text-muted">@GetTimeLeft(timing.Time) Left</h4>
+                        <h4 class="card-title text-center text-dark">@title</h4>
+                        <p class="text-center display-5 text-primary">@time</p>
+                        <h4 class="text-center text-muted">@GetTimeLeft(time) Left</h4>
                     </div>
                 </div>
             }
@@ -74,36 +71,93 @@ else
     </div>
 }
 
+<!-- Footer -->
+<footer class="footer bg-gradient text-center text-light">
+    <div class="container p-3 pb-0">
+        <section class="mb-4">
+            <h5 style="font-family:'Lucida Console', Monaco, monospace; font-size: 1.2rem;">Made by No'monjon Matlubov</h5>
+            <a data-mdb-ripple-init class="btn btn-floating m-1 social-link"
+               href="https://www.linkedin.com/in/nomonjon-matlubov-72646133b" role="button" target="_blank" style="background-color: #0a66c2;">
+                <i class="bi bi-linkedin"></i>
+            </a>
+            <a data-mdb-ripple-init class="btn btn-floating m-1 social-link"
+               href="https://github.com/nomonjon" role="button" target="_blank" style="background-color: #333;">
+                <i class="bi bi-github"></i>
+            </a>
+        </section>
+    </div>
+</footer>
+
+<style>
+    .footer {
+        background: linear-gradient(45deg, #007bb5, #333);
+        padding: 20px 0;
+    }
+    .social-link {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: transform 0.3s;
+    }
+    .social-link:hover {
+        transform: scale(1.2);
+    }
+</style>
+
+<!-- JavaScript -->
+<script>
+    window.getLocation = async () => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject("Geolocation is not supported by this browser.");
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitude: parseFloat(position.coords.latitude.toFixed(6)),
+                        longitude: parseFloat(position.coords.longitude.toFixed(6))
+                    });
+                },
+                (error) => {
+                    reject(error.message);
+                }
+            );
+        });
+    };
+
+    function scrollToElement() {
+        const element = document.getElementById('target');
+        element.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
 @code {
-    public string? CurrentCity = "Moscow";
-    public string? CurrentCountry = "Russia";
-    private PrayerTimes? timings;
+    private Location? location;
+    private string? errorMessage;
     private string buttonText = "Find My Location";
     private bool isLoading = false;
+    private string? CurrentCity;
+    private PrayerTimes? timings;
+    private Dictionary<string, string> prayerTimes = new();
 
-    protected override async Task OnInitializedAsync()
+    private class Location
     {
-        // Load prayer times for Moscow by default
-        await LoadPrayerTimes(CurrentCity, CurrentCountry);
-    }
-
-    private async Task LoadPrayerTimes(string city, string country)
-    {
-        try
-        {
-            var response = await Http.GetFromJsonAsync<ApiResponse>($"v1/timingsByCity?city={city}&country={country}");
-            timings = response?.Data?.Timings;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching prayer times: {ex.Message}");
-        }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public string? City { get; set; }
+        public string? Country { get; set; }
     }
 
     private async Task GetLocation()
     {
         try
         {
+            errorMessage = null;
             buttonText = "Finding Location...";
             isLoading = true;
 
@@ -111,17 +165,28 @@ else
 
             if (coordinates != null)
             {
-                CurrentCity = "Your City"; // Replace with actual API lookup
-                CurrentCountry = "Your Country"; // Replace with actual API lookup
+                location = coordinates;
+                var response = await Http.GetFromJsonAsync<GeocodeResponse>(
+                    $"https://api.opencagedata.com/geocode/v1/json?q={coordinates.Latitude}+{coordinates.Longitude}&key=YOUR_API_KEY");
 
-                await LoadPrayerTimes(CurrentCity, CurrentCountry);
+                if (response?.Results?.Any() == true)
+                {
+                    var result = response.Results.First();
+                    location.City = result.Components.City ?? result.Components.Town ?? result.Components.Village;
+                    location.Country = result.Components.Country;
 
-                buttonText = $"{CurrentCity} / {CurrentCountry}";
+                    CurrentCity = location.City;
+                    buttonText = $"{location.City} / {location.Country}";
+                }
+                else
+                {
+                    errorMessage = "Unable to fetch city and country details.";
+                }
             }
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            errorMessage = "Unable to access your location.";
         }
         finally
         {
@@ -129,15 +194,26 @@ else
         }
     }
 
-    private IEnumerable<(string Name, string Time)> GetPrayerTimes()
+    protected override async Task OnInitializedAsync()
     {
-        if (timings == null) yield break;
+        if (CurrentCity != null)
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse>(
+                $"v1/timingsByCity?city={CurrentCity}&country={CurrentCountry}");
+            timings = response?.Data?.Timings;
 
-        yield return ("Bomdod (Fajr)", timings.Fajr);
-        yield return ("Peshin (Dhuhr)", timings.Dhuhr);
-        yield return ("Asr", timings.Asr);
-        yield return ("Shom (Maghrib)", timings.Maghrib);
-        yield return ("Xufton (Isha)", timings.Isha);
+            if (timings != null)
+            {
+                prayerTimes = new Dictionary<string, string>
+                {
+                    { "Bomdod (Fajr)", timings.Fajr! },
+                    { "Peshin (Dhuhr)", timings.Dhuhr! },
+                    { "Asr", timings.Asr! },
+                    { "Shom (Maghrib)", timings.Maghrib! },
+                    { "Xufton (Isha)", timings.Isha! }
+                };
+            }
+        }
     }
 
     private string GetTimeLeft(string? prayerTime)
@@ -148,6 +224,7 @@ else
         {
             var now = DateTime.Now;
             var prayerDateTime = DateTime.ParseExact(prayerTime, "HH:mm", null);
+            prayerDateTime = new DateTime(now.Year, now.Month, now.Day, prayerDateTime.Hour, prayerDateTime.Minute, 0);
 
             if (prayerDateTime <= now)
                 return "00:00:00";
@@ -161,6 +238,29 @@ else
         }
     }
 
+    private async Task ScrollToElement()
+    {
+        await JS.InvokeVoidAsync("scrollToElement");
+    }
+
+    public class GeocodeResponse
+    {
+        public List<GeocodeResult>? Results { get; set; }
+    }
+
+    public class GeocodeResult
+    {
+        public Components Components { get; set; } = new();
+    }
+
+    public class Components
+    {
+        public string? City { get;set; } 
+        public string? Town { get; set; } 
+        public string? Village { get; set; } 
+        public string? Country { get; set; } 
+    }
+
     public class PrayerTimes
     {
         public string? Fajr { get; set; }
@@ -169,25 +269,14 @@ else
         public string? Maghrib { get; set; }
         public string? Isha { get; set; }
     }
-
+    
     public class Data
     {
         public PrayerTimes? Timings { get; set; }
     }
-
+    
     public class ApiResponse
     {
         public Data? Data { get; set; }
-    }
-
-    private class Location
-    {
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-    }
-
-    private async Task ScrollToElement()
-    {
-        await JS.InvokeVoidAsync("scrollToElement");
     }
 }
