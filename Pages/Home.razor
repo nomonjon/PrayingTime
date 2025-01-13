@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @using System.Net.Http.Json
 @inject HttpClient Http
 
@@ -27,121 +27,8 @@
     </div>
 </nav>
 
-
-
-
-@code {
-    private Location? location;
-    private string? errorMessage = "!!!";
-    private string buttonText = "Find My Location";
-    private bool isLoading = false;
-
-    private class Location
-    {
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-        public string? City { get; set; }
-        public string? Country { get; set; }
-
-        public string[] GetAdress()
-        {
-            string[] str = new string[2];
-            str[0] = City!;
-            str[1] = Country!;
-
-            return str;
-        }
-    }
-
-    private async Task GetLocation()
-    {
-        try
-        {
-            errorMessage = null;
-            buttonText = "Finding Location...";
-            isLoading = true;
-            StateHasChanged();
-
-            // Get coordinates from browser
-            var coordinates = await JS.InvokeAsync<Location>("getLocation");
-
-            if (coordinates != null)
-            {
-                location = coordinates;
-                var response = await Http.GetFromJsonAsync<GeocodeResponse>(
-                    $"https://api.opencagedata.com/geocode/v1/json?q={coordinates.Latitude}+{coordinates.Longitude}&key=ebfc5f0beb2741a9860d7f9270c22769");
-
-                if (response?.Results?.Any() == true)
-                {
-                    var result = response.Results.First();
-                    location.City = result.Components.City ?? result.Components.Town ?? result.Components.Village;
-                    location.Country = result.Components.Country;
-                }
-                else
-                {
-                    errorMessage = "Unable to fetch city and country details. Please try again.";
-                }
-
-                CurrentCity = location.City!;
-
-                buttonText = $"{location.City} / {location.Country}";
-            }
-        }
-        catch (Exception)
-        {
-            errorMessage = "Unable to access your location. Please check your browser settings or permissions.";
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    public class GeocodeResponse
-    {
-        public List<GeocodeResult>? Results { get; set; }
-    }
-
-    public class GeocodeResult
-    {
-        public Components Components { get; set; } = new();
-    }
-
-    public class Components
-    {
-        public string? City { get; set; }
-        public string? Town { get; set; }
-        public string? Village { get; set; }
-        public string? Country { get; set; }
-    }
-}
-
-<script>
-    window.getLocation = async () => {
-        return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                reject("Geolocation is not supported by this browser.");
-            }
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({
-                        latitude: parseFloat(position.coords.latitude.toFixed(6)),
-                        longitude: parseFloat(position.coords.longitude.toFixed(6))
-                    });
-                },
-                (error) => {
-                    reject(error.message);
-                }
-            );
-        });
-    };
-</script>
-
-<!-- body -->
-
 <div class="container-fluid bg-darkorange text-white"
-style="min-height: 100vh; padding-top: 100px; background-color: rgb(150, 55, 0);" id="app">
+     style="min-height: 100vh; padding-top: 100px; background-color: rgb(150, 55, 0);" id="app">
     <div class="row justify-content-center align-items-center" style="height: calc(100vh - 200px);">
         <div class="col-lg-4 col-md-12 d-flex justify-content-center"></div>
 
@@ -160,98 +47,97 @@ style="min-height: 100vh; padding-top: 100px; background-color: rgb(150, 55, 0);
     </div>
 </div>
 
-<script>
-    function scrollToElement() {
-    const element = document.getElementById('target');
-    element.scrollIntoView({ behavior: 'smooth' });
-    }
-</script>
-
-@code
-{
-    public string? CurrentCity;
-    public string? CurrentCountry;
-}
-
 @if (CurrentCity is null)
 {
-    <h3 id="target" class="text-center mt-5">Press Find My Location</h3>
+    <h3 id="target" class="text-center mt-5">Praying times in Moscow</h3>
 }
 else
 {
     <h3 id="target" class="text-center mt-5">Praying times in @CurrentCity</h3>
 }
 
-
 @if (timings != null)
 {
     <div class="container mt-5">
         <div class="row justify-content-center">
-            <!-- Fajr -->
-            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                <div class="card p-4" style="background-color: #f8f9fa;">
-                    <h4 class="card-title text-center text-dark">Bomdod (Fajr)</h4>
-                    <p class="text-center display-5 text-primary">@timings.Fajr</p>
-                    <h4 class="text-center text-muted">@GetTimeLeft(timings.Fajr) Left</h4>
+            @foreach (var timing in GetPrayerTimes())
+            {
+                <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                    <div class="card p-4" style="background-color: #f8f9fa;">
+                        <h4 class="card-title text-center text-dark">@timing.Name</h4>
+                        <p class="text-center display-5 text-primary">@timing.Time</p>
+                        <h4 class="text-center text-muted">@GetTimeLeft(timing.Time) Left</h4>
+                    </div>
                 </div>
-            </div>
-            <!-- Dhuhr -->
-            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                <div class="card p-4" style="background-color: #f8f9fa;">
-                    <h4 class="card-title text-center text-dark">Peshin (Dhuhr)</h4>
-                    <p class="text-center display-5 text-primary">@timings.Dhuhr</p>
-                    <h4 class="text-center text-muted">@GetTimeLeft(timings.Dhuhr) Left</h4>
-                </div>
-            </div>
-            <!-- Asr -->
-            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                <div class="card p-4" style="background-color: #f8f9fa;">
-                    <h4 class="card-title text-center text-dark">Asr</h4>
-                    <p class="text-center display-5 text-primary">@timings.Asr</p>
-                    <h4 class="text-center text-muted">@GetTimeLeft(timings.Asr) Left</h4>
-                </div>
-            </div>
-            <!-- Maghrib -->
-            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                <div class="card p-4" style="background-color: #f8f9fa;">
-                    <h4 class="card-title text-center text-dark">Shom (Maghrib)</h4>
-                    <p class="text-center display-5 text-primary">@timings.Maghrib</p>
-                    <h4 class="text-center text-muted">@GetTimeLeft(timings.Maghrib) Left</h4>
-                </div>
-            </div>
-            <!-- Isha -->
-            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                <div class="card p-4" style="background-color: #f8f9fa;">
-                    <h4 class="card-title text-center text-dark">Xufton (Isha)</h4>
-                    <p class="text-center display-5 text-primary">@timings.Isha</p>
-                    <h4 class="text-center text-muted">@GetTimeLeft(timings.Isha) Left</h4>
-                </div>
-            </div>
+            }
         </div>
     </div>
 }
 
-
-@implements IDisposable
-
 @code {
-    private System.Timers.Timer? timer;
+    public string? CurrentCity = "Moscow";
+    public string? CurrentCountry = "Russia";
+    private PrayerTimes? timings;
+    private string buttonText = "Find My Location";
+    private bool isLoading = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // Initialize and start the timer
-        timer = new System.Timers.Timer(1000); // Trigger every 1 second
-        timer.Elapsed += TimerElapsed;
-        timer.Start();
+        // Load prayer times for Moscow by default
+        await LoadPrayerTimes(CurrentCity, CurrentCountry);
     }
 
-    private void TimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    private async Task LoadPrayerTimes(string city, string country)
     {
-        // Invoke the UI update on the Blazor rendering thread
-        InvokeAsync(() =>
+        try
         {
-            StateHasChanged(); // Refresh the UI
-        });
+            var response = await Http.GetFromJsonAsync<ApiResponse>($"v1/timingsByCity?city={city}&country={country}");
+            timings = response?.Data?.Timings;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching prayer times: {ex.Message}");
+        }
+    }
+
+    private async Task GetLocation()
+    {
+        try
+        {
+            buttonText = "Finding Location...";
+            isLoading = true;
+
+            var coordinates = await JS.InvokeAsync<Location>("getLocation");
+
+            if (coordinates != null)
+            {
+                CurrentCity = "Your City"; // Replace with actual API lookup
+                CurrentCountry = "Your Country"; // Replace with actual API lookup
+
+                await LoadPrayerTimes(CurrentCity, CurrentCountry);
+
+                buttonText = $"{CurrentCity} / {CurrentCountry}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private IEnumerable<(string Name, string Time)> GetPrayerTimes()
+    {
+        if (timings == null) yield break;
+
+        yield return ("Bomdod (Fajr)", timings.Fajr);
+        yield return ("Peshin (Dhuhr)", timings.Dhuhr);
+        yield return ("Asr", timings.Asr);
+        yield return ("Shom (Maghrib)", timings.Maghrib);
+        yield return ("Xufton (Isha)", timings.Isha);
     }
 
     private string GetTimeLeft(string? prayerTime)
@@ -261,58 +147,18 @@ else
         try
         {
             var now = DateTime.Now;
-
-            // Parse prayer time and set it to today's date
             var prayerDateTime = DateTime.ParseExact(prayerTime, "HH:mm", null);
-            prayerDateTime = new DateTime(now.Year, now.Month, now.Day, prayerDateTime.Hour, prayerDateTime.Minute, 0);
 
-            // If the prayer time has passed, return "00:00:00"
             if (prayerDateTime <= now)
                 return "00:00:00";
 
-            // Calculate the remaining time
             var timeLeft = prayerDateTime - now;
             return $"{timeLeft.Hours:D2}:{timeLeft.Minutes:D2}:{timeLeft.Seconds:D2}";
         }
         catch
         {
-            return "00:00:00"; // Return fallback value in case of errors
+            return "00:00:00";
         }
-    }
-
-    public void Dispose()
-    {
-        // Stop and dispose the timer
-        if (timer != null)
-        {
-            timer.Stop();
-            timer.Dispose();
-            timer = null;
-        }
-    }
-}
-
-
-
-@code {
-    private PrayerTimes? timings;
-
-    protected override async Task OnInitializedAsync()
-    {
-        ApiResponse? response;
-        while(CurrentCity is null)
-        {
-            response = await Http.GetFromJsonAsync<ApiResponse>($"v1/timingsByCity?city=Moskow&country=Russia");
-
-        }
-        response = await Http.GetFromJsonAsync<ApiResponse>($"v1/timingsByCity?city={CurrentCity}&country={CurrentCountry}");
-        timings = response?.Data?.Timings;
-    }
-
-    private async Task ScrollToElement()
-    {
-        // Call the JavaScript function for smooth scrolling
-        await JS.InvokeVoidAsync("scrollToElement");
     }
 
     public class PrayerTimes
@@ -333,49 +179,15 @@ else
     {
         public Data? Data { get; set; }
     }
+
+    private class Location
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+
+    private async Task ScrollToElement()
+    {
+        await JS.InvokeVoidAsync("scrollToElement");
+    }
 }
-
-<!-- footer-->
-
-
-<footer class="footer bg-gradient text-center text-light">
-    <!-- Grid container -->
-    <div class="container p-3 pb-0">
-        <!-- Section: Social media -->
-        <section class="mb-4">
-            <h5 style="font-family:'Lucida Console', Monaco, monospace; font-size: 1.2rem;">Made by No'monjon Matlubov</h5>
-            <!-- Linkedin -->
-            <a data-mdb-ripple-init class="btn btn-floating m-1 social-link"
-                href="https://www.linkedin.com/in/nomonjon-matlubov-72646133b?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app"
-                role="button" target="_blank" style="background-color: #0a66c2;">
-                <i class="bi bi-linkedin"></i>
-            </a>
-            <!-- Github -->
-            <a data-mdb-ripple-init class="btn btn-floating m-1 social-link"
-                href="https://github.com/nomonjon" role="button" target="_blank" style="background-color: #333;">
-                <i class="bi bi-github"></i>
-            </a>
-        </section>
-    </div>
-</footer>
-
-<style>
-    .footer {
-        background: linear-gradient(45deg, #007bb5, #333);
-        padding: 20px 0;
-    }
-    .social-link {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-        color: white;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        transition: transform 0.3s;
-    }
-    .social-link:hover {
-        transform: scale(1.2);
-    }
-</style>
