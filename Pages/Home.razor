@@ -83,6 +83,7 @@
                 }
 
                 CurrentCity = location.City!;
+                CurrentCountry = location.Country!;
 
                 buttonText = $"{location.City} / {location.Country}";
             }
@@ -303,7 +304,7 @@ else
         while(CurrentCity is null)
         {
             response = await Http.GetFromJsonAsync<ApiResponse>($"v1/timingsByCity?city=Moskow&country=Russia");
-
+            timings = response?.Data?.Timings;
         }
         response = await Http.GetFromJsonAsync<ApiResponse>($"v1/timingsByCity?city={CurrentCity}&country={CurrentCountry}");
         timings = response?.Data?.Timings;
