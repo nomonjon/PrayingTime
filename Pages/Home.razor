@@ -142,6 +142,7 @@ else
     private string buttonText = "Find My Location";
     private bool isLoading = false;
     private string? CurrentCity;
+    private string? CurrentCountry;
     private PrayerTimes? timings;
     private Dictionary<string, string> prayerTimes = new();
 
@@ -176,6 +177,8 @@ else
                     location.Country = result.Components.Country;
 
                     CurrentCity = location.City;
+                    CurrentCountry = location.Country;
+
                     buttonText = $"{location.City} / {location.Country}";
                 }
                 else
