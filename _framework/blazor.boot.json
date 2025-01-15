@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "PrayingTime",
   "resources": {
-    "hash": "sha256-TUj0vMccvUB9f68GMSjBYFvaS0/ZIGM7p71aPLhYfcY=",
+    "hash": "sha256-FD28zn6/5Mnlw0+kZ65Ckl+tCHka/5ynHMHq8QYTHeI=",
     "jsModuleNative": {
       "dotnet.native.8.0.12.5019ia6r61.js": "sha256-B6DNRvFeCUi3jbx9uKpuj+hV9cN0KG4RdZj1FgBZwj8="
     },
@@ -33,7 +33,7 @@
       "Microsoft.Extensions.Primitives.wasm": "sha256-6187ynEahDlSLMBvD4vAmiLpZ3clRb5xu6rM7O8AxNo=",
       "Microsoft.JSInterop.wasm": "sha256-r9dkR5134QvSR5zRWncgwA3QgGc2mbiRwhPteP2xbpk=",
       "Microsoft.JSInterop.WebAssembly.wasm": "sha256-2bohIT7/qEC9nPtjBrESwyddQ86eqIfABSFaK7lb55A=",
-      "PrayingTime.wasm": "sha256-36J12YhC4sodwFSxz0IRsta6O/zf4iie5GBUJom7/dU=",
+      "PrayingTime.wasm": "sha256-PJHj1LGV8Qtkztd2pvO1CaFLepqG+CUdQqYY1RwausA=",
       "System.Collections.Concurrent.wasm": "sha256-2qMsofEHmWGU/P9LuGYF8mkKxSA8fKetMg/hRrfzZSQ=",
       "System.Collections.wasm": "sha256-aujUStff0m8QM79wMfbaFIW+uepMsBbdENpnol6lTBY=",
       "System.ComponentModel.Primitives.wasm": "sha256-pCubtjOewgz9G1g6tlybkLCzteoVE52yLJJJp3dpPlQ=",
